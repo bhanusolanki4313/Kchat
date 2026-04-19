@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KChat</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -12,7 +12,22 @@
   html, body{
   height:100%;
   margin:0;
+  padding:0;
+  overflow:hidden;
 }
+
+/* MAIN CHAT FULL SCREEN FIX */
+#chat{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  display:none;
+  flex-direction:column;
+  height:100%;
+}
+
 
 /* IMPORTANT FIX */
 body{
@@ -171,6 +186,7 @@ padding-left:10px;
   inset:0;
   display:none;
   flex-direction:column;
+  height: calc(var(--vh, 1vh) * 100);
 }
 
 .header{
@@ -364,6 +380,14 @@ return;
 }
 document.getElementById("typing").innerText="";
 });
+  function fixVH(){
+  document.documentElement.style.setProperty(
+    '--vh',
+    `${window.innerHeight * 0.01}px`
+  );
+}
+fixVH();
+window.addEventListener('resize', fixVH);
 
 </script>
 
