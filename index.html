@@ -14,6 +14,7 @@ body{
   font-family:sans-serif;
   background:#ece5dd;
   height:100vh;
+  overflow:hidden;
 }
 
 /* 🔥 SPLASH */
@@ -63,7 +64,11 @@ text-align:center;
 }
 
 /* CHAT */
-#chat{display:none;height:100vh;flex-direction:column;}
+#chat{
+  display:none;
+  height:100vh;
+  flex-direction:column;
+}
 
 .header{
 background:#075e54;
@@ -85,11 +90,11 @@ border-radius:10px;
 .status{font-size:12px;}
 
 .messages{
-flex:1;
-overflow:auto;
-padding:10px;
-display:flex;
-flex-direction:column;
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
 }
 
 .msg{
@@ -103,9 +108,9 @@ max-width:70%;
 .other{background:white;}
 
 .inputBox{
-display:flex;
-padding:10px;
-background:white;
+  display:flex;
+  padding:10px;
+  background:white;
 }
 
 .inputBox input{
