@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KChat</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#ece5dd;}
+
+/* 🔥 SPLASH */
+#splash{
+position:fixed;
+width:100%;
+height:100vh;
+background:#111;
+color:white;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:999;
+animation:fadeOut 0.5s ease 1.5s forwards;
+}
+
+.logo{
+width:80px;height:80px;
+background:#25D366;
+border-radius:50%;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:40px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+@keyframes fadeOut{
+to{opacity:0;visibility:hidden;}
+}
+
+/* LOGIN */
+#login{
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.login-box{
+background:white;
+padding:25px;
+border-radius:15px;
+text-align:center;
+}
+
+/* CHAT */
+#chat{display:none;height:100vh;flex-direction:column;}
+
+.header{
+background:#075e54;
+color:white;
+padding:10px;
+display:flex;
+align-items:center;
+}
+
+.clearBtn{
+margin-left:auto;
+background:red;
+border:none;
+color:white;
+padding:5px 10px;
+border-radius:10px;
+}
+
+.status{font-size:12px;}
+
+.messages{
+flex:1;
+overflow:auto;
+padding:10px;
+display:flex;
+flex-direction:column;
+}
+
+.msg{
+padding:8px;
+border-radius:8px;
+margin:5px;
+max-width:70%;
+}
+
+.me{background:#dcf8c6;align-self:flex-end;}
+.other{background:white;}
+
+.inputBox{
+display:flex;
+padding:10px;
+background:white;
+}
+
+.inputBox input{
+flex:1;
+padding:10px;
+border-radius:20px;
+border:1px solid #ccc;
+}
+
+button{
+padding:10px;
+border:none;
+border-radius:20px;
+background:#25D366;
+color:white;
+margin-left:5px;
+}
+
+.typing{
+font-size:12px;
+color:#555;
+padding-left:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🔥 SPLASH -->
+<div id="splash">
+<div class="logo">K</div>
+<h2>Kabutar Chat</h2>
+<p>Made by Bhanu</p>
+</div>
+
+<!-- LOGIN -->
+<div id="login">
+<div class="login-box">
+<h2>KChat</h2>
+<input id="name" placeholder="Name"><br><br>
+<input id="pass" type="password" placeholder="Password"><br><br>
+<button onclick="login()">Enter</button>
+</div>
+</div>
+
+<!-- CHAT -->
+<div id="chat">
+
+<div class="header">
+<div>
+<div>KChat</div>
+<div class="status" id="status"></div>
+</div>
+<button class="clearBtn" onclick="clearChat()">Clear</button>
+</div>
+
+<div class="messages" id="msgs"></div>
+<div class="typing" id="typing"></div>
+
+<div class="inputBox">
+<input id="msg" placeholder="Message" oninput="typingSend()">
+<button onclick="send()">Send</button>
+</div>
+
+</div>
+
+<script>
+
+// 🔥 SPLASH TIME CONTROL
+setTimeout(()=>{
+document.getElementById("splash").style.display="none";
+},1500);
+
+// FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyAiXvw84M5j_6o5FntyhWyhAetHE1P5fOQ",
+  authDomain: "realtime-chat-web-app-688d4.firebaseapp.com",
+  databaseURL: "https://realtime-chat-web-app-688d4-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let username="";
+const password="4313";
+
+// LOGIN
+function login(){
+let name=document.getElementById("name").value.trim();
+let pass=document.getElementById("pass").value;
+
+if(!name){alert("Enter name");return;}
+if(pass!==password){alert("Wrong password");return;}
+
+username=name;
+
+document.getElementById("login").style.display="none";
+document.getElementById("chat").style.display="flex";
+
+// ONLINE STATUS
+db.ref("status/"+username).set("online");
+db.ref("status/"+username).onDisconnect().set("offline");
+
+// SHOW STATUS
+db.ref("status").on("value",snap=>{
+let data=snap.val();
+for(let user in data){
+if(user!==username){
+document.getElementById("status").innerText =
+data[user]==="online"?"🟢 Online":"⚫ Offline";
+}
+}
+});
+
+load();
+}
+
+// SEND
+function send(){
+let text=document.getElementById("msg").value;
+if(!text.trim()) return;
+
+db.ref("chat").push({
+name:username,
+msg:text,
+seen:false
+});
+
+document.getElementById("msg").value="";
+db.ref("typing/"+username).set("");
+}
+
+// LOAD + BLUE TICK + DELETE
+function load(){
+db.ref("chat").limitToLast(20).on("child_added",snap=>{
+let d=snap.val();
+let key=snap.key;
+
+let div=document.createElement("div");
+div.className="msg "+(d.name===username?"me":"other");
+
+// ✔✔ BLUE TICK
+let tick="";
+if(d.name===username){
+tick = d.seen
+? `<span style="color:#34B7F1"> ✔✔</span>`
+: `<span style="color:gray"> ✔</span>`;
+}
+
+div.innerHTML = d.msg + tick;
+
+// DELETE FOR EVERYONE
+div.onclick=()=>{
+if(confirm("Delete for everyone?")){
+db.ref("chat/"+key).remove();
+}
+};
+
+document.getElementById("msgs").appendChild(div);
+document.getElementById("msgs").scrollTop=999999;
+
+// SEEN UPDATE
+if(d.name!==username){
+db.ref("chat/"+key).update({seen:true});
+}
+});
+}
+
+// CLEAR CHAT
+function clearChat(){
+if(confirm("Clear chat?")){
+db.ref("chat").remove();
+document.getElementById("msgs").innerHTML="";
+}
+}
+
+// TYPING
+function typingSend(){
+db.ref("typing/"+username).set(username);
+
+setTimeout(()=>{
+db.ref("typing/"+username).set("");
+},1000);
+}
+
+db.ref("typing").on("value",snap=>{
+let data=snap.val();
+
+for(let user in data){
+if(user!==username && data[user]){
+document.getElementById("typing").innerText=user+" is typing...";
+return;
+}
+}
+document.getElementById("typing").innerText="";
+});
+
+</script>
+
+</body>
+</html>
