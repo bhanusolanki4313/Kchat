@@ -206,6 +206,34 @@ padding-left:10px;
   display:flex;
   padding:10px;
   background:white;
+  
+}
+  /* reaction bar */
+.reactBar{
+  position:absolute;
+  bottom:100%;
+  left:10px;
+  background:white;
+  border-radius:20px;
+  padding:6px 8px;
+  display:flex;
+  gap:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  z-index:5;
+}
+
+.reactBar span{
+  font-size:18px;
+}
+
+.msg{
+  position:relative;
+}
+
+/* show reactions under msg */
+.reacts{
+  font-size:14px;
+  margin-top:4px;
 }
 </style>
 </head>
@@ -268,7 +296,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let username="";
-const password="4313";
+const password="43113";
 
 // LOGIN
 function login(){
@@ -286,16 +314,26 @@ document.getElementById("chat").style.display="flex";
 // ONLINE STATUS
 db.ref("status/"+username).set("online");
 db.ref("status/"+username).onDisconnect().set("offline");
+// SHOW STATUS (LIVE)
+db.ref("status").on("child_changed",snap=>{
+  let user = snap.key;
+  let state = snap.val();
 
-// SHOW STATUS
-db.ref("status").on("value",snap=>{
-let data=snap.val();
-for(let user in data){
-if(user!==username){
-document.getElementById("status").innerText =
-data[user]==="online"?"🟢 Online":"⚫ Offline";
-}
-}
+  if(user !== username){
+    document.getElementById("status").innerText =
+      state === "online" ? "🟢 Online" : "⚫ Offline";
+  }
+});
+
+// ✅ First time load
+db.ref("status").on("child_added",snap=>{
+  let user = snap.key;
+  let state = snap.val();
+
+  if(user !== username){
+    document.getElementById("status").innerText =
+      state === "online" ? "🟢 Online" : "⚫ Offline";
+  }
 });
 
 load();
@@ -388,6 +426,30 @@ document.getElementById("typing").innerText="";
 }
 fixVH();
 window.addEventListener('resize', fixVH);
+  function showReactions(div,key){
+  let old=document.getElementById("reactBar");
+  if(old) old.remove();
+
+  let bar=document.createElement("div");
+  bar.className="reactBar";
+  bar.id="reactBar";
+
+  let emojis=["👍","❤️","😂","😮","😢","🙏"];
+
+  emojis.forEach(e=>{
+    let span=document.createElement("span");
+    span.innerText=e;
+
+    span.onclick=()=>{
+      db.ref("chat/"+key+"/reacts/"+username).set(e);
+      bar.remove();
+    };
+
+    bar.appendChild(span);
+  });
+
+  div.appendChild(bar);
+  }
 
 </script>
 
