@@ -208,7 +208,6 @@ padding-left:10px;
   background:white;
   
 }
-  /* reaction bar */
 .reactBar{
   position:absolute;
   bottom:100%;
@@ -219,7 +218,7 @@ padding-left:10px;
   display:flex;
   gap:6px;
   box-shadow:0 2px 8px rgba(0,0,0,.15);
-  z-index:5;
+  z-index:9999; /* ⭐ IMPORTANT FIX */
 }
 
 .reactBar span{
@@ -355,68 +354,105 @@ db.ref("typing/"+username).set("");
 }
 
 // LOAD + BLUE TICK + DELETE
+
 function load(){
-db.ref("chat").limitToLast(20).on("child_added",snap=>{
-let d=snap.val();
-let key=snap.key;
 
-let div=document.createElement("div");
-div.className="msg "+(d.name===username?"me":"other");
+  db.ref("chat").limitToLast(50).on("child_added",snap=>{
+    renderMsg(snap.key, snap.val());
+  });
 
-// ✔✔ BLUE TICK
-let tick="";
-if(d.name===username){
-tick = d.seen
-? `<span style="color:#34B7F1"> ✔✔</span>`
-: `<span style="color:gray"> ✔</span>`;
+  db.ref("chat").on("child_changed",snap=>{
+    updateTick(snap.key, snap.val());
+  });
+
+  db.ref("chat").on("child_removed",snap=>{
+    let el=document.getElementById("msg_"+snap.key);
+    if(el) el.remove();
+  });
 }
 
-div.innerHTML = d.msg + tick;
 
-// DELETE FOR EVERYONE
-div.onclick=()=>{
-if(confirm("Delete for everyone?")){
-db.ref("chat/"+key).remove();
-}
-};
+function renderMsg(key, d){
+  let msgs=document.getElementById("msgs");
 
-document.getElementById("msgs").appendChild(div);
-document.getElementById("msgs").scrollTop=999999;
+  let div=document.createElement("div");
+  div.id="msg_"+key;
+  div.className="msg "+(d.name===username?"me":"other");
 
-// SEEN UPDATE
-if(d.name!==username){
-db.ref("chat/"+key).update({seen:true});
-}
-});
+  let html = `<div class="nameTag"><b>${d.name}</b></div>`;
+
+  if(d.msg){
+    html += `<div class="msgText">${d.msg}</div>`;
+  }
+
+  if(d.img){
+    html += `<div class="msgImg"><img src="${d.img}"></div>`;
+  }
+
+  if(d.audio){
+    html += `<div class="msgAudio"><audio controls src="${d.audio}"></audio></div>`;
+  }
+
+  let tick="";
+  if(d.name===username){
+    tick = `<div class="tick" id="tick_${key}" 
+            style="color:${d.seen?'#34B7F1':'gray'}">
+            ${d.seen?'✔✔':'✔'}
+            </div>`;
+  }
+
+  div.innerHTML = html + tick;
+
+  // Delete for everyone
+  div.onclick=()=>{
+    if(confirm("Delete for everyone?")){
+      db.ref("chat/"+key).remove();
+    }
+  };
+
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Seen update
+  if(d.name!==username && !d.seen){
+    db.ref("chat/"+key).update({seen:true});
+  }
 }
 
-// CLEAR CHAT
-function clearChat(){
-if(confirm("Clear chat?")){
-db.ref("chat").remove();
-document.getElementById("msgs").innerHTML="";
-}
+
+function updateTick(key, d){
+  if(d.name===username){
+    let tick=document.getElementById("tick_"+key);
+    if(tick){
+      tick.innerHTML="✔✔";
+      tick.style.color="#34B7F1";
+    }
+  }
 }
 
-// TYPING
+
+// 🔥 WhatsApp typing animation
 function typingSend(){
-db.ref("typing/"+username).set(username);
+  db.ref("typing/"+username).set(true);
 
-setTimeout(()=>{
-db.ref("typing/"+username).set("");
-},1000);
+  setTimeout(()=>{
+    db.ref("typing/"+username).set(false);
+  },1200);
 }
 
 db.ref("typing").on("value",snap=>{
-let data=snap.val();
-
-for(let user in data){
-if(user!==username && data[user]){
-document.getElementById("typing").innerText=user+" is typing...";
-return;
-}
-}
-document.getElementById("typing").innerText="";
+  let data=snap.val();
+  for(let user in data){
+    if(user!==username && data[user]){
+      document.getElementById("typing").innerHTML =
+        `${user} is typing
+        <span class="dot">.</span>
+        <span class="dot">.</span>
+        <span class="dot">.</span>`;
+      return;
+    }
+  }
+  document.getElementById("typing").innerText="";
 });
   function fixVH(){
   document.documentElement.style.setProperty(
@@ -447,6 +483,7 @@ window.addEventListener('resize', fixVH);
 
     bar.appendChild(span);
   });
+    div.style.position="relative";
 
   div.appendChild(bar);
   }
