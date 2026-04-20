@@ -234,6 +234,12 @@ padding-left:10px;
   font-size:14px;
   margin-top:4px;
 }
+  .nameTag{
+  font-size:11px;
+  font-weight:400;
+  color:#777;
+  margin-bottom:2px;
+  }
 </style>
 </head>
 
@@ -376,6 +382,27 @@ function renderMsg(key, d){
   let msgs=document.getElementById("msgs");
 
   let div=document.createElement("div");
+document.getElementById("msgs").appendChild(div);
+  
+  let pressTimer;
+
+// LONG PRESS START
+div.addEventListener("touchstart", ()=>{
+  pressTimer = setTimeout(()=>{
+    showReactions(div,key);
+  }, 500);
+});
+
+// CANCEL IF RELEASE
+div.addEventListener("touchend", ()=>{
+  clearTimeout(pressTimer);
+});
+
+// CANCEL IF SCROLLING
+div.addEventListener("touchmove", ()=>{
+  clearTimeout(pressTimer);
+});
+  
   div.id="msg_"+key;
   div.className="msg "+(d.name===username?"me":"other");
 
@@ -392,7 +419,7 @@ function renderMsg(key, d){
   if(d.audio){
     html += `<div class="msgAudio"><audio controls src="${d.audio}"></audio></div>`;
   }
-
+div.innerHTML = html;
   let tick="";
   if(d.name===username){
     tick = `<div class="tick" id="tick_${key}" 
@@ -460,9 +487,7 @@ db.ref("typing").on("value",snap=>{
     `${window.innerHeight * 0.01}px`
   );
 }
-fixVH();
-window.addEventListener('resize', fixVH);
-  function showReactions(div,key){
+function showReactions(div,key){
   let old=document.getElementById("reactBar");
   if(old) old.remove();
 
@@ -483,10 +508,10 @@ window.addEventListener('resize', fixVH);
 
     bar.appendChild(span);
   });
-    div.style.position="relative";
 
+  div.style.position="relative";
   div.appendChild(bar);
-  }
+}
 
 </script>
 
