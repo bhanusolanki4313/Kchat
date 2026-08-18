@@ -16,7 +16,6 @@
   overflow:hidden;
 }
 
-/* MAIN CHAT FULL SCREEN FIX */
 #chat{
   position:fixed;
   top:0;
@@ -28,8 +27,6 @@
   height:100%;
 }
 
-
-/* IMPORTANT FIX */
 body{
   overflow:hidden;
 }
@@ -56,7 +53,6 @@ body{
   overflow:hidden;
 }
 
-/* 🔥 SPLASH */
 #splash{
 position:fixed;
 width:100%;
@@ -87,7 +83,6 @@ margin-bottom:10px;
 to{opacity:0;visibility:hidden;}
 }
 
-/* LOGIN */
 #login{
 height:100vh;
 display:flex;
@@ -102,7 +97,6 @@ border-radius:15px;
 text-align:center;
 }
 
-/* CHAT */
 #chat{
   display:none;
   height:100vh;
@@ -208,7 +202,7 @@ padding-left:10px;
   background:white;
   
 }
-  /* reaction bar */
+
 .reactBar{
   position:absolute;
   bottom:100%;
@@ -230,7 +224,6 @@ padding-left:10px;
   position:relative;
 }
 
-/* show reactions under msg */
 .reacts{
   font-size:14px;
   margin-top:4px;
@@ -240,14 +233,12 @@ padding-left:10px;
 
 <body>
 
-<!-- 🔥 SPLASH -->
 <div id="splash">
 <div class="logo">K</div>
 <h2>Kabutar Chat</h2>
 <p>Made by Rohan - BCA 2nd Year</p>
 </div>
 
-<!-- LOGIN -->
 <div id="login">
 <div class="login-box">
 <h2>KChat</h2>
@@ -257,7 +248,6 @@ padding-left:10px;
 </div>
 </div>
 
-<!-- CHAT -->
 <div id="chat">
 
 <div class="header">
@@ -280,19 +270,10 @@ padding-left:10px;
 
 <script>
 
-/*
- Simple student-made realtime chat
- Modified by: Rohan (BCA 2nd Year)
- Notes: Thoda sa simple code style rakha hai, comments Hinglish me diye hai.
-*/
-
-// 🔥 SPLASH TIME CONTROL
 setTimeout(()=>{
-  // hide splash after thoda time
   document.getElementById("splash").style.display="none";
 },1500);
 
-// FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyAiXvw84M5j_6o5FntyhWyhAetHE1P5fOQ",
   authDomain: "realtime-chat-web-app-688d4.firebaseapp.com",
@@ -302,10 +283,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let username=""; // user ka name store karega
-const password="kabutar"; // simple password (student ne rakha)
+let username="";
+const password="kabutar";
 
-// LOGIN function - yaha se app start hota hai
 function login(){
   var name = document.getElementById("name").value.trim();
   var pass = document.getElementById("pass").value;
@@ -315,16 +295,12 @@ function login(){
 
   username = name;
 
-  // hide login and show chat
   document.getElementById("login").style.display = "none";
   document.getElementById("chat").style.display = "flex";
 
-  // ONLINE STATUS update
   db.ref("status/"+username).set("online");
-  // jab user disconnect karega to offline set kar dena
   db.ref("status/"+username).onDisconnect().set("offline");
 
-  // show status of other users live
   db.ref("status").on("child_changed", function(snap){
     var user = snap.key;
     var state = snap.val();
@@ -334,7 +310,6 @@ function login(){
     }
   });
 
-  // first time load se bhi status dikhana
   db.ref("status").on("child_added", function(snap){
     var user = snap.key;
     var state = snap.val();
@@ -348,7 +323,6 @@ function login(){
   load();
 }
 
-// SEND message function
 function send(){
   var text = document.getElementById("msg").value;
   if(!text || !text.trim()) return;
@@ -359,14 +333,11 @@ function send(){
     seen: false
   });
 
-  // clear input
   document.getElementById("msg").value = "";
-  // remove typing indicator for this user
   db.ref("typing/"+username).set("");
   console.log('Message sent by ' + username);
 }
 
-// LOAD messages + blue tick + delete behavior
 function load(){
   db.ref("chat").limitToLast(20).on("child_added", function(snap){
     var d = snap.val();
@@ -375,16 +346,13 @@ function load(){
     var div = document.createElement("div");
     div.className = "msg " + (d.name===username?"me":"other");
 
-    // ✔✔ BLUE TICK - agar message mera hai to ticks dikhayenge
     var tick = "";
     if(d.name === username){
       tick = d.seen ? '<span style="color:#34B7F1"> ✔✔</span>' : '<span style="color:gray"> ✔</span>';
     }
 
-    // show message text aur tick
     div.innerHTML = d.msg + tick;
 
-    // DELETE FOR EVERYONE on click - simple implementation
     div.onclick = function(){
       if(confirm("Delete for everyone?")){
         db.ref("chat/"+key).remove();
@@ -392,17 +360,14 @@ function load(){
     };
 
     document.getElementById("msgs").appendChild(div);
-    // scroll to bottom - simple hack
     document.getElementById("msgs").scrollTop = 999999;
 
-    // mark seen when dusra banda message bheje
     if(d.name !== username){
       db.ref("chat/"+key).update({seen:true});
     }
   });
 }
 
-// CLEAR CHAT - bahut simple
 function clearChat(){
   if(confirm("Clear chat?")){
     db.ref("chat").remove();
@@ -410,18 +375,14 @@ function clearChat(){
   }
 }
 
-// TYPING indicator
 function typingSend(){
-  // set typing to username for others to see
   db.ref("typing/"+username).set(username);
 
-  // remove after 1s
   setTimeout(function(){
     db.ref("typing/"+username).set("");
   }, 1000);
 }
 
-// listen typing values
 db.ref("typing").on("value", function(snap){
   var data = snap.val() || {};
 
@@ -434,14 +395,12 @@ db.ref("typing").on("value", function(snap){
   document.getElementById("typing").innerText = "";
 });
 
-// fix vh for mobile browsers (student note: learned from tutorial)
 function fixVH(){
   document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
 }
 fixVH();
 window.addEventListener('resize', fixVH);
 
-// reaction bar - add emoji reactions
 function showReactions(div, key){
   var old = document.getElementById('reactBar');
   if(old) old.remove();
