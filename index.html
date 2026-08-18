@@ -244,7 +244,7 @@ padding-left:10px;
 <div id="splash">
 <div class="logo">K</div>
 <h2>Kabutar Chat</h2>
-<p>Made by Bhanu</p>
+<p>Made by Rohan - BCA 2nd Year</p>
 </div>
 
 <!-- LOGIN -->
@@ -280,9 +280,16 @@ padding-left:10px;
 
 <script>
 
+/*
+ Simple student-made realtime chat
+ Modified by: Rohan (BCA 2nd Year)
+ Notes: Thoda sa simple code style rakha hai, comments Hinglish me diye hai.
+*/
+
 // 🔥 SPLASH TIME CONTROL
 setTimeout(()=>{
-document.getElementById("splash").style.display="none";
+  // hide splash after thoda time
+  document.getElementById("splash").style.display="none";
 },1500);
 
 // FIREBASE
@@ -295,153 +302,162 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let username="";
-const password="kabutar";
+let username=""; // user ka name store karega
+const password="kabutar"; // simple password (student ne rakha)
 
-// LOGIN
+// LOGIN function - yaha se app start hota hai
 function login(){
-let name=document.getElementById("name").value.trim();
-let pass=document.getElementById("pass").value;
+  var name = document.getElementById("name").value.trim();
+  var pass = document.getElementById("pass").value;
 
-if(!name){alert("Enter name");return;}
-if(pass!==password){alert("Wrong password");return;}
+  if(!name){ alert("Enter name"); return; }
+  if(pass !== password){ alert("Wrong password"); return; }
 
-username=name;
+  username = name;
 
-document.getElementById("login").style.display="none";
-document.getElementById("chat").style.display="flex";
+  // hide login and show chat
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chat").style.display = "flex";
 
-// ONLINE STATUS
-db.ref("status/"+username).set("online");
-db.ref("status/"+username).onDisconnect().set("offline");
-// SHOW STATUS (LIVE)
-db.ref("status").on("child_changed",snap=>{
-  let user = snap.key;
-  let state = snap.val();
+  // ONLINE STATUS update
+  db.ref("status/"+username).set("online");
+  // jab user disconnect karega to offline set kar dena
+  db.ref("status/"+username).onDisconnect().set("offline");
 
-  if(user !== username){
-    document.getElementById("status").innerText =
-      state === "online" ? "🟢 Online" : "⚫ Offline";
-  }
-});
+  // show status of other users live
+  db.ref("status").on("child_changed", function(snap){
+    var user = snap.key;
+    var state = snap.val();
 
-// ✅ First time load
-db.ref("status").on("child_added",snap=>{
-  let user = snap.key;
-  let state = snap.val();
+    if(user !== username){
+      document.getElementById("status").innerText = state === "online" ? "🟢 Online" : "⚫ Offline";
+    }
+  });
 
-  if(user !== username){
-    document.getElementById("status").innerText =
-      state === "online" ? "🟢 Online" : "⚫ Offline";
-  }
-});
+  // first time load se bhi status dikhana
+  db.ref("status").on("child_added", function(snap){
+    var user = snap.key;
+    var state = snap.val();
 
-load();
+    if(user !== username){
+      document.getElementById("status").innerText = state === "online" ? "🟢 Online" : "⚫ Offline";
+    }
+  });
+
+  console.log(username + " logged in");
+  load();
 }
 
-// SEND
+// SEND message function
 function send(){
-let text=document.getElementById("msg").value;
-if(!text.trim()) return;
+  var text = document.getElementById("msg").value;
+  if(!text || !text.trim()) return;
 
-db.ref("chat").push({
-name:username,
-msg:text,
-seen:false
-});
+  db.ref("chat").push({
+    name: username,
+    msg: text,
+    seen: false
+  });
 
-document.getElementById("msg").value="";
-db.ref("typing/"+username).set("");
+  // clear input
+  document.getElementById("msg").value = "";
+  // remove typing indicator for this user
+  db.ref("typing/"+username).set("");
+  console.log('Message sent by ' + username);
 }
 
-// LOAD + BLUE TICK + DELETE
+// LOAD messages + blue tick + delete behavior
 function load(){
-db.ref("chat").limitToLast(20).on("child_added",snap=>{
-let d=snap.val();
-let key=snap.key;
+  db.ref("chat").limitToLast(20).on("child_added", function(snap){
+    var d = snap.val();
+    var key = snap.key;
 
-let div=document.createElement("div");
-div.className="msg "+(d.name===username?"me":"other");
+    var div = document.createElement("div");
+    div.className = "msg " + (d.name===username?"me":"other");
 
-// ✔✔ BLUE TICK
-let tick="";
-if(d.name===username){
-tick = d.seen
-? `<span style="color:#34B7F1"> ✔✔</span>`
-: `<span style="color:gray"> ✔</span>`;
+    // ✔✔ BLUE TICK - agar message mera hai to ticks dikhayenge
+    var tick = "";
+    if(d.name === username){
+      tick = d.seen ? '<span style="color:#34B7F1"> ✔✔</span>' : '<span style="color:gray"> ✔</span>';
+    }
+
+    // show message text aur tick
+    div.innerHTML = d.msg + tick;
+
+    // DELETE FOR EVERYONE on click - simple implementation
+    div.onclick = function(){
+      if(confirm("Delete for everyone?")){
+        db.ref("chat/"+key).remove();
+      }
+    };
+
+    document.getElementById("msgs").appendChild(div);
+    // scroll to bottom - simple hack
+    document.getElementById("msgs").scrollTop = 999999;
+
+    // mark seen when dusra banda message bheje
+    if(d.name !== username){
+      db.ref("chat/"+key).update({seen:true});
+    }
+  });
 }
 
-div.innerHTML = d.msg + tick;
-
-// DELETE FOR EVERYONE
-div.onclick=()=>{
-if(confirm("Delete for everyone?")){
-db.ref("chat/"+key).remove();
-}
-};
-
-document.getElementById("msgs").appendChild(div);
-document.getElementById("msgs").scrollTop=999999;
-
-// SEEN UPDATE
-if(d.name!==username){
-db.ref("chat/"+key).update({seen:true});
-}
-});
-}
-
-// CLEAR CHAT
+// CLEAR CHAT - bahut simple
 function clearChat(){
-if(confirm("Clear chat?")){
-db.ref("chat").remove();
-document.getElementById("msgs").innerHTML="";
-}
+  if(confirm("Clear chat?")){
+    db.ref("chat").remove();
+    document.getElementById("msgs").innerHTML = "";
+  }
 }
 
-// TYPING
+// TYPING indicator
 function typingSend(){
-db.ref("typing/"+username).set(username);
+  // set typing to username for others to see
+  db.ref("typing/"+username).set(username);
 
-setTimeout(()=>{
-db.ref("typing/"+username).set("");
-},1000);
+  // remove after 1s
+  setTimeout(function(){
+    db.ref("typing/"+username).set("");
+  }, 1000);
 }
 
-db.ref("typing").on("value",snap=>{
-let data=snap.val();
+// listen typing values
+db.ref("typing").on("value", function(snap){
+  var data = snap.val() || {};
 
-for(let user in data){
-if(user!==username && data[user]){
-document.getElementById("typing").innerText=user+" is typing...";
-return;
-}
-}
-document.getElementById("typing").innerText="";
+  for(var user in data){
+    if(user !== username && data[user]){
+      document.getElementById("typing").innerText = user + " is typing...";
+      return;
+    }
+  }
+  document.getElementById("typing").innerText = "";
 });
-  function fixVH(){
-  document.documentElement.style.setProperty(
-    '--vh',
-    `${window.innerHeight * 0.01}px`
-  );
+
+// fix vh for mobile browsers (student note: learned from tutorial)
+function fixVH(){
+  document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
 }
 fixVH();
 window.addEventListener('resize', fixVH);
-  function showReactions(div,key){
-  let old=document.getElementById("reactBar");
+
+// reaction bar - add emoji reactions
+function showReactions(div, key){
+  var old = document.getElementById('reactBar');
   if(old) old.remove();
 
-  let bar=document.createElement("div");
-  bar.className="reactBar";
-  bar.id="reactBar";
+  var bar = document.createElement('div');
+  bar.className = 'reactBar';
+  bar.id = 'reactBar';
 
-  let emojis=["👍","❤️","😂","😮","😢","🙏"];
+  var emojis = ['👍','❤️','😂','😮','😢','🙏'];
 
-  emojis.forEach(e=>{
-    let span=document.createElement("span");
-    span.innerText=e;
+  emojis.forEach(function(e){
+    var span = document.createElement('span');
+    span.innerText = e;
 
-    span.onclick=()=>{
-      db.ref("chat/"+key+"/reacts/"+username).set(e);
+    span.onclick = function(){
+      db.ref('chat/'+key+'/reacts/'+username).set(e);
       bar.remove();
     };
 
@@ -449,7 +465,7 @@ window.addEventListener('resize', fixVH);
   });
 
   div.appendChild(bar);
-  }
+}
 
 </script>
 
